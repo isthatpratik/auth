@@ -12,8 +12,10 @@ import { useForm } from "react-hook-form";
 import { formSchema } from "@/lib/auth-schema";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function SignUp() {
+  const router = useRouter()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,6 +40,7 @@ export default function SignUp() {
       },
       onSuccess: () => {
         form.reset()
+        router.replace('/sign-in')
       },
       onError: (ctx) => {
         toast({ title: ctx.error.message, variant: 'destructive' });
@@ -79,7 +82,7 @@ export default function SignUp() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="john@mail.com" {...field} />
+                    <Input placeholder="john@company.co" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
