@@ -1,0 +1,163 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String  @id @default(cuid())
+  email            String  @unique
+  name             String?
+  password         String?
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean @default(false)
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], name: "UserOrganization")
+
+  ownedOrganizations Organization[] @relation(name: "OrgOwner")
+  teams              TeamMember[]
+  invitations        Invitation[]
+
+  sessions        Session[]
+  twoFactorTokens TwoFactorToken[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified Boolean
+  image         String?
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Organization {
+  id      String @id @default(cuid())
+  name    String @unique
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], name: "OrgOwner")
+
+  members     User[]       @relation(name: "UserOrganization")
+  teams       Team[]
+  invitations Invitation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Team {
+  id             String       @id @default(cuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  members TeamMember[]
+
+  createdAt DateTime @default(now())
+}
+
+model TeamMember {
+  id     String @id @default(cuid())
+  teamId String
+  userId String
+
+  team Team @relation(fields: [teamId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  role TeamRole @default(MEMBER)
+
+  createdAt DateTime @default(now())
+
+  // Ensures a user is only in a team once
+  @@unique([teamId, userId])
+}
+
+model Invitation {
+  id             String   @id @default(cuid())
+  email          String
+  token          String   @unique
+  organizationId String
+  invitedById    String
+  expiresAt      DateTime
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invitedBy    User         @relation(fields: [invitedById], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  token     String
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  @@unique([token])
+  @@map("session")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  token     String   @unique
+  expiresAt DateTime
+}
+
+model TwoFactorToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  token     String
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TeamRole {
+  MEMBER
+  LEAD
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
